@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical" >
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="VIEW_AAAAA" />
+
+    <TextView
+        android:id="@+id/text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="hello" />
+    
+    <Button android:id="@+id/btna"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="newViewA"/>
+    
+    <Button android:id="@+id/btnb"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="newViewB"/>
+    
+    <Button android:id="@+id/btnc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="newViewC"/>
+    
+    <Button android:id="@+id/btndelall"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="deleteAll"/>
+    
+    <Button android:id="@+id/btndelsame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="deleteSame"/>
+    
+    <Button android:id="@+id/btnshowpanel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Show Panel Window"/>
+    
+    <Button android:id="@+id/btnstartservice"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Start Float Service"/>
+    
+    <Button android:id="@+id/btnstopservice"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Stop Float Service"/>
+
+</LinearLayout>
