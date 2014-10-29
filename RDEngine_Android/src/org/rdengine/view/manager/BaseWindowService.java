@@ -2,10 +2,14 @@ package org.rdengine.view.manager;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.PixelFormat;
+import android.graphics.Rect;
 import android.os.IBinder;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Gravity;
+import android.view.Surface;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.WindowManager.LayoutParams;
@@ -27,8 +31,9 @@ public class BaseWindowService extends Service implements ViewController
         Log.d("service", "onCreate");
         super.onCreate();
         winMgr = (WindowManager) this.getSystemService("window");
-        createDefaultLayoutParams(1080 - 480, 1920 - 800, 400, 800, BaseView.INPUT_TYPE_TOUCH_KEY);
-        createContainer();
+        initDefaultParams();
+        initContainer();
+        changeScreenSize();
         scanThread = new ScanTopActivityThread(this);
         scanThread.start();
     }
@@ -52,64 +57,130 @@ public class BaseWindowService extends Service implements ViewController
     private WindowContainer container;
     WindowManager winMgr;
 
-    private void createContainer()
+    private void initContainer()
     {
         Log.d("service", "createContainer");
         container = new WindowContainer(this);
         container.setVisibility(View.GONE);
         container.setFocusable(true);
-        currentParams = new LayoutParams();
-        currentParams.copyFrom(defaultParams);
+        isDefaultParams = true;
         winMgr.addView(container, defaultParams);
         mViewManager = new ViewManager(this, container);
+
+    }
+
+    private void initDefaultParams()
+    {
+        if (defaultParams == null)
+        {
+            defaultParams = new LayoutParams();
+            changeLayoutParams(defaultParams, 0, 0, screenWidth, screenHeight, BaseView.INPUT_TYPE_TOUCH_KEY, false);
+        }
+        if (currentParams == null)
+        {
+            currentParams = new LayoutParams();
+            currentParams.copyFrom(defaultParams);
+        }
     }
 
     private LayoutParams defaultParams;
     private LayoutParams currentParams;
+    private boolean isDefaultParams = false;
 
-    private void createDefaultLayoutParams(int x, int y, int w, int h, int inputType)
+    public Rect getDefaultPortraitRect()
     {
-        defaultParams = new WindowManager.LayoutParams();
-        defaultParams.type = LayoutParams.TYPE_SYSTEM_ALERT;
-        defaultParams.gravity = Gravity.LEFT | Gravity.TOP;
-        defaultParams.format = PixelFormat.RGBA_8888;
+        return new Rect(0, 0, screenWidth, screenHeight);
+    }
+
+    public Rect getDefaultLandscapeRect()
+    {
+        return new Rect(0, 0, screenWidth, screenHeight);
+    }
+
+    private int screenWidth = 0, screenHeight = 0;
+
+    private void changeScreenSize()
+    {
+        DisplayMetrics dm = new DisplayMetrics();
+        winMgr.getDefaultDisplay().getMetrics(dm);
+        screenWidth = dm.widthPixels;
+        screenHeight = dm.heightPixels;
+        int rotation = winMgr.getDefaultDisplay().getRotation();
+        Rect rect = null;
+        if (rotation == Surface.ROTATION_0 || rotation == Surface.ROTATION_180)
+        {
+            rect = getDefaultPortraitRect();
+        } else
+        {
+            rect = getDefaultLandscapeRect();
+        }
+        changeLayoutParams(defaultParams, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top,
+                BaseView.INPUT_TYPE_TOUCH_KEY, false);
+        if (isDefaultParams)
+        {
+            int lastType = currentParams.type;
+            currentParams.copyFrom(defaultParams);
+            if (lastType == currentParams.type)
+            {
+                winMgr.updateViewLayout(container, currentParams);
+            } else
+            {
+                winMgr.removeView(container);
+                winMgr.addView(container, currentParams);
+            }
+        }
+        Log.d("service", "changeScreenSize:width:" + screenWidth + ",height=" + screenHeight);
+    }
+
+    private void changeLayoutParams(LayoutParams params, int x, int y, int w, int h, int inputType, boolean topOnInput)
+    {
+        if (topOnInput)
+        {
+            params.type = LayoutParams.TYPE_SYSTEM_ERROR;
+        } else
+        {
+            params.type = LayoutParams.TYPE_SYSTEM_ALERT;
+        }
+        params.gravity = Gravity.LEFT | Gravity.TOP;
+        params.format = PixelFormat.RGBA_8888;
         switch (inputType)
         {
         case BaseView.INPUT_TYPE_TOUCH_KEY :
-            defaultParams.flags = LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | LayoutParams.FLAG_NOT_TOUCH_MODAL;
+            params.flags = LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | LayoutParams.FLAG_NOT_TOUCH_MODAL;
             break;
         case BaseView.INPUT_TYPE_NOTOUCH_NOKEY :
-            defaultParams.flags = LayoutParams.FLAG_NOT_TOUCHABLE | LayoutParams.FLAG_NOT_TOUCH_MODAL
+            params.flags = LayoutParams.FLAG_NOT_TOUCHABLE | LayoutParams.FLAG_NOT_TOUCH_MODAL
                     | LayoutParams.FLAG_NOT_FOCUSABLE;
             break;
         case BaseView.INPUT_TYPE_TOUCH_NOKEY :
-            defaultParams.flags = LayoutParams.FLAG_NOT_TOUCH_MODAL | LayoutParams.FLAG_NOT_FOCUSABLE;
+            params.flags = LayoutParams.FLAG_NOT_TOUCH_MODAL | LayoutParams.FLAG_NOT_FOCUSABLE;
             break;
         case BaseView.INPUT_TYPE_NOTOUCH_KEY :
-            defaultParams.flags = LayoutParams.FLAG_NOT_TOUCHABLE | LayoutParams.FLAG_NOT_TOUCH_MODAL;
+            params.flags = LayoutParams.FLAG_NOT_TOUCHABLE | LayoutParams.FLAG_NOT_TOUCH_MODAL;
             break;
         }
-        defaultParams.flags |= LayoutParams.FLAG_FULLSCREEN | LayoutParams.FLAG_LAYOUT_IN_SCREEN;
-        defaultParams.x = x;
-        defaultParams.y = y;
-        defaultParams.width = w;
-        defaultParams.height = h;
+        params.flags |= LayoutParams.FLAG_FULLSCREEN | LayoutParams.FLAG_LAYOUT_IN_SCREEN;
+        params.x = x;
+        params.y = y;
+        params.width = w;
+        params.height = h;
     }
 
-    private void updateLayoutParams(LayoutParams params, boolean changeType)
+    public int getScreenWidth()
     {
-        if (changeType)
-        {
-            currentParams = params;
-            winMgr.removeView(container);
-            winMgr.addView(container, currentParams);
-        } else
-        {
-            currentParams = params;
-            winMgr.updateViewLayout(container, currentParams);
-        }
-        Log.d("service", "updateLayout:x=" + currentParams.x + ",y=" + currentParams.y + ",w=" + currentParams.width
-                + ",h=" + currentParams.height);
+        return screenWidth;
+    }
+
+    public int getScreenHeight()
+    {
+        return screenHeight;
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig)
+    {
+        super.onConfigurationChanged(newConfig);
+        changeScreenSize();
     }
 
     private boolean isPaused = false;
@@ -139,7 +210,10 @@ public class BaseWindowService extends Service implements ViewController
         if (container != null)
         {
             Log.d("service", "Resume");
-            container.setVisibility(View.VISIBLE);
+            if (container.getChildCount() > 0)
+            {
+                container.setVisibility(View.VISIBLE);
+            }
         }
     }
 
@@ -225,14 +299,23 @@ public class BaseWindowService extends Service implements ViewController
     @Override
     public void setDefaultLayoutParams()
     {
-        LayoutParams param = new LayoutParams();
-        param.copyFrom(defaultParams);
-        updateLayoutParams(param, param.type != currentParams.type);
+        isDefaultParams = true;
+        int lastType = currentParams.type;
+        currentParams.copyFrom(defaultParams);
+        if (lastType == currentParams.type)
+        {
+            winMgr.updateViewLayout(container, currentParams);
+        } else
+        {
+            winMgr.removeView(container);
+            winMgr.addView(container, currentParams);
+        }
     }
 
     @Override
     public void updateWindowLayoutParams(int x, int y, int w, int h, int inputType, boolean topOnInput)
     {
+        isDefaultParams = false;
         if (currentParams == null)
         {
             currentParams = new LayoutParams();
@@ -270,8 +353,15 @@ public class BaseWindowService extends Service implements ViewController
         currentParams.y = y;
         currentParams.width = w;
         currentParams.height = h;
+        if (lastType == currentParams.type)
+        {
+            winMgr.updateViewLayout(container, currentParams);
+        } else
+        {
+            winMgr.removeView(container);
+            winMgr.addView(container, currentParams);
+        }
 
-        updateLayoutParams(currentParams, lastType != currentParams.type);
     }
 
     // Controller-----------------------------------------------------------------------------------------

@@ -30,6 +30,13 @@ public class BubbleView extends BaseView
         this.getController().updateWindowLayoutParams(floatX, floatY, 128, 128, INPUT_TYPE_TOUCH_NOKEY, true);
     }
 
+    @Override
+    public void onHide()
+    {
+        super.onHide();
+        this.getController().setDefaultLayoutParams();
+    }
+
     int floatX = 0, floatY = 0;
     int keyDownX = 0, keyDownY = 0;
     long keyDownTime = 0;
@@ -48,15 +55,22 @@ public class BubbleView extends BaseView
             keyDownTime = System.currentTimeMillis();
             break;
         case MotionEvent.ACTION_MOVE :
-            floatX = x;
-            floatY = y;
-            this.getController().updateWindowLayoutParams(x - 64, y - 64, 128, 128, INPUT_TYPE_TOUCH_NOKEY, true);
+            if (Math.abs(x - keyDownX) < 10 & Math.abs(y - keyDownY) < 10)
+            {
+
+            } else
+            {
+                floatX = x - 64;
+                floatY = y - 64;
+                this.getController().updateWindowLayoutParams(floatX, floatY, 128, 128, INPUT_TYPE_TOUCH_NOKEY, true);
+            }
             break;
         case MotionEvent.ACTION_UP :
             if (System.currentTimeMillis() - keyDownTime < 500)
             {
-                if (Math.abs(x - keyDownX) < 5 & Math.abs(y - keyDownY) < 5)
+                if (Math.abs(x - keyDownX) < 10 & Math.abs(y - keyDownY) < 10)
                 {
+
                     onClick();
                 }
             }
@@ -67,7 +81,6 @@ public class BubbleView extends BaseView
 
     private void onClick()
     {
-        this.getController().setDefaultLayoutParams();
         this.getController().showView(ViewA.class, null);
     }
 

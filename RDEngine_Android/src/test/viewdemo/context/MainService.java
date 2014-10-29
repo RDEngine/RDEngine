@@ -6,6 +6,7 @@ import org.rdengine.runtime.event.EventTag;
 import org.rdengine.view.manager.BaseWindowService;
 
 import test.viewdemo.view.BubbleView;
+import android.graphics.Rect;
 
 public class MainService extends BaseWindowService
 {
@@ -41,12 +42,23 @@ public class MainService extends BaseWindowService
                 MainService.this.showView(BubbleView.class, null);
                 break;
             case EventTag.SCAN_ACTIVITY_DESKTOP :
-                Pause();
+                // Pause();
                 break;
             case EventTag.SCAN_ACTIVITY_APP :
-                Resume();
+                // Resume();
                 break;
             }
         }
     };
+
+    public Rect getDefaultPortraitRect()
+    {
+        return new Rect(100, 100, getScreenWidth() - 200, getScreenHeight() - 200);
+    };
+
+    @Override
+    public Rect getDefaultLandscapeRect()
+    {
+        return new Rect(100, 50, 800, getScreenHeight() - 100);
+    }
 }

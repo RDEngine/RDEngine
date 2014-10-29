@@ -4,7 +4,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
 import android.view.LayoutInflater;
-import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.FrameLayout;
 
@@ -82,10 +81,7 @@ public abstract class BaseView extends FrameLayout
         this.parentView = parentView;
     }
 
-    /**
-     * pause掉所有子View,适用于PageView
-     */
-    public void hideOtherChildrenView(BaseView view)
+    public void hideChildrenView()
     {
 
     }
@@ -118,11 +114,6 @@ public abstract class BaseView extends FrameLayout
         {
             isShown = true;
             Log.i("BaseView", "onShow:" + this.getClass().getName());
-            BaseView parent = getParentView();
-            if (parent != null)
-            {
-                parent.hideOtherChildrenView(this);
-            }
         }
     }
 
@@ -131,9 +122,9 @@ public abstract class BaseView extends FrameLayout
         if (isShown)
         {
             isShown = false;
-            Log.i("BaseView", "onPause:" + this.getClass().getName());
+            Log.i("BaseView", "onHide:" + this.getClass().getName());
 
-            hideOtherChildrenView(null);
+            hideChildrenView();
         }
     }
 
@@ -148,18 +139,6 @@ public abstract class BaseView extends FrameLayout
     }
 
     public abstract String getTag();
-
-    WindowManager.LayoutParams defaultLayoutParams;
-
-    /**
-     * Override该方法可以自定义View在window中的LayoutParams,不Override则使用默认的LayoutParams
-     * 
-     * @return
-     */
-    public WindowManager.LayoutParams getWindowLayoutParams()
-    {
-        return defaultLayoutParams;
-    }
 
     public void closeInputMethod()
     {

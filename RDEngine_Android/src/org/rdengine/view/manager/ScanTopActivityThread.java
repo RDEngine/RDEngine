@@ -24,6 +24,7 @@ public class ScanTopActivityThread extends Thread
     public ScanTopActivityThread(Context context)
     {
         mContext = context;
+        isListening = true;
     }
 
     boolean isListening = false;
@@ -52,7 +53,6 @@ public class ScanTopActivityThread extends Thread
                         continue;
                     }
                     apknamehashcode = apkname.hashCode();
-
                     if (apknamehashcode != lastAPKNameHashCode)
                     {
                         Log.d("service", "apkname:" + apkname + ":" + (System.currentTimeMillis() - starttime));
