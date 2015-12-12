@@ -33,13 +33,14 @@ public class BaseActivity extends FragmentActivity implements ViewController
     protected void onPause()
     {
         super.onPause();
-
+        // MobclickAgent.onPause(this);
     }
 
     @Override
     protected void onResume()
     {
         super.onResume();
+        // MobclickAgent.onResume(this);
     }
 
     @Override
@@ -114,5 +115,28 @@ public class BaseActivity extends FragmentActivity implements ViewController
     @Override
     public void updateWindowLayoutParams(int x, int y, int w, int h, int inputType, boolean topOnInput)
     {}
+
+    @Override
+    public BaseView getTopView()
+    {
+        return mViewManager.getViewAt(mViewManager.getViewSize() - 1);
+
+    }
+
+    public void swipeviewOnDismiss(BaseView sbv)
+    {
+        mViewManager.swipeviewOnDismiss(sbv);
+    }
+
+    @Override
+    public void moveToTop(BaseView view)
+    {
+        mViewManager.moveToTop(view);
+    }
+
+    public void moveToBottom(BaseView view)
+    {
+        mViewManager.moveToBottom(view);
+    }
 
 }

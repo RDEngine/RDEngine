@@ -1,5 +1,6 @@
 package org.rdengine.view.manager;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -22,8 +23,19 @@ import android.view.WindowManager.LayoutParams;
 public class BaseWindowService extends Service implements ViewController
 {
 
-    ViewManager mViewManager;
-    ScanTopActivityThread scanThread;
+    private static int TYPE_TOPONINPUT = LayoutParams.TYPE_SYSTEM_ERROR;
+    static
+    {
+        // MIUI V6之前 气泡用TYPE_SYSTEM_ERROR 会有问题 不刷新 不重绘
+        // int miuiversion = PhoneUtil.getMIUIVersion();
+        // if (miuiversion >= 0 && miuiversion <= 5)
+        {
+            TYPE_TOPONINPUT = LayoutParams.TYPE_PHONE;
+            // DLOG.e("BaseWindowService", "MIUIversion=V" + miuiversion + "  TYPE_TOPONINPUT=LayoutParams.TYPE_PHONE");
+        }
+    }
+
+    protected ViewManager mViewManager;
 
     @Override
     public void onCreate()
@@ -34,8 +46,7 @@ public class BaseWindowService extends Service implements ViewController
         initDefaultParams();
         initContainer();
         changeScreenSize();
-        scanThread = new ScanTopActivityThread(this);
-        scanThread.start();
+
     }
 
     @Override
@@ -44,7 +55,6 @@ public class BaseWindowService extends Service implements ViewController
         Log.d("service", "onDestroy");
         super.onDestroy();
         winMgr.removeView(container);
-        scanThread.stopScan();
 
     }
 
@@ -55,8 +65,9 @@ public class BaseWindowService extends Service implements ViewController
     }
 
     private WindowContainer container;
-    WindowManager winMgr;
+    protected WindowManager winMgr;
 
+    @SuppressLint("NewApi")
     private void initContainer()
     {
         Log.d("service", "createContainer");
@@ -66,7 +77,6 @@ public class BaseWindowService extends Service implements ViewController
         isDefaultParams = true;
         winMgr.addView(container, defaultParams);
         mViewManager = new ViewManager(this, container);
-
     }
 
     private void initDefaultParams()
@@ -136,17 +146,17 @@ public class BaseWindowService extends Service implements ViewController
     {
         if (topOnInput)
         {
-            params.type = LayoutParams.TYPE_SYSTEM_ERROR;
+            params.type = TYPE_TOPONINPUT;
         } else
         {
-            params.type = LayoutParams.TYPE_SYSTEM_ALERT;
+            params.type = LayoutParams.TYPE_PHONE;
         }
         params.gravity = Gravity.LEFT | Gravity.TOP;
         params.format = PixelFormat.RGBA_8888;
         switch (inputType)
         {
         case BaseView.INPUT_TYPE_TOUCH_KEY :
-            params.flags = LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | LayoutParams.FLAG_NOT_TOUCH_MODAL;
+            params.flags = LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH;
             break;
         case BaseView.INPUT_TYPE_NOTOUCH_NOKEY :
             params.flags = LayoutParams.FLAG_NOT_TOUCHABLE | LayoutParams.FLAG_NOT_TOUCH_MODAL
@@ -157,6 +167,9 @@ public class BaseWindowService extends Service implements ViewController
             break;
         case BaseView.INPUT_TYPE_NOTOUCH_KEY :
             params.flags = LayoutParams.FLAG_NOT_TOUCHABLE | LayoutParams.FLAG_NOT_TOUCH_MODAL;
+            break;
+        case BaseView.INPUT_TYPE_TOUCH_KEY_THROUGH :
+            params.flags = LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | LayoutParams.FLAG_NOT_TOUCH_MODAL;
             break;
         }
         params.flags |= LayoutParams.FLAG_FULLSCREEN | LayoutParams.FLAG_LAYOUT_IN_SCREEN;
@@ -184,6 +197,11 @@ public class BaseWindowService extends Service implements ViewController
     }
 
     private boolean isPaused = false;
+
+    public boolean isPaused()
+    {
+        return isPaused;
+    }
 
     public void Pause()
     {
@@ -326,16 +344,15 @@ public class BaseWindowService extends Service implements ViewController
         int lastType = currentParams.type;
         if (topOnInput)
         {
-            currentParams.type = LayoutParams.TYPE_SYSTEM_ERROR;
+            currentParams.type = TYPE_TOPONINPUT;
         } else
         {
-            currentParams.type = LayoutParams.TYPE_SYSTEM_ALERT;
+            currentParams.type = LayoutParams.TYPE_PHONE;
         }
-
         switch (inputType)
         {
         case BaseView.INPUT_TYPE_TOUCH_KEY :
-            currentParams.flags = LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | LayoutParams.FLAG_NOT_TOUCH_MODAL;
+            currentParams.flags = LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH;
             break;
         case BaseView.INPUT_TYPE_NOTOUCH_NOKEY :
             currentParams.flags = LayoutParams.FLAG_NOT_TOUCHABLE | LayoutParams.FLAG_NOT_TOUCH_MODAL
@@ -346,6 +363,13 @@ public class BaseWindowService extends Service implements ViewController
             break;
         case BaseView.INPUT_TYPE_NOTOUCH_KEY :
             currentParams.flags = LayoutParams.FLAG_NOT_TOUCHABLE | LayoutParams.FLAG_NOT_TOUCH_MODAL;
+            break;
+        case BaseView.INPUT_TYPE_TOUCH_KEY_THROUGH :
+            currentParams.flags = LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | LayoutParams.FLAG_NOT_TOUCH_MODAL;
+            break;
+        case BaseView.INPUT_TYPE_TOUCH_NOKEY_THROUGH :
+            currentParams.flags = LayoutParams.FLAG_WATCH_OUTSIDE_TOUCH | LayoutParams.FLAG_NOT_TOUCH_MODAL
+                    | LayoutParams.FLAG_NOT_FOCUSABLE;
             break;
         }
         currentParams.flags |= LayoutParams.FLAG_FULLSCREEN | LayoutParams.FLAG_LAYOUT_IN_SCREEN;
@@ -362,6 +386,30 @@ public class BaseWindowService extends Service implements ViewController
             winMgr.addView(container, currentParams);
         }
 
+    }
+
+    @Override
+    public BaseView getTopView()
+    {
+        return mViewManager.getViewAt(mViewManager.getViewSize() - 1);
+
+    }
+
+    @Override
+    public void swipeviewOnDismiss(BaseView sbv)
+    {
+        mViewManager.swipeviewOnDismiss(sbv);
+    }
+
+    @Override
+    public void moveToTop(BaseView view)
+    {
+        mViewManager.moveToTop(view);
+    }
+
+    public void moveToBottom(BaseView view)
+    {
+        mViewManager.moveToBottom(view);
     }
 
     // Controller-----------------------------------------------------------------------------------------

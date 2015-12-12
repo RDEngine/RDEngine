@@ -1,5 +1,7 @@
 package org.rdengine.view.manager;
 
+import org.rdengine.log.DLOG;
+
 import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
@@ -14,6 +16,8 @@ public abstract class BaseView extends FrameLayout
 
     private ViewController controller;
 
+    private boolean refreshed = false;
+
     public BaseView(Context context)
     {
         super(context);
@@ -23,6 +27,7 @@ public abstract class BaseView extends FrameLayout
         }
         controller = (ViewController) context;
         setClickable(true);
+        refreshed = false;
     }
 
     public BaseView(Context context, ViewParam param)
@@ -33,12 +38,17 @@ public abstract class BaseView extends FrameLayout
 
     public void init()
     {
-        refresh();
+        // refresh();
     }
 
     public void refresh()
     {
+        refreshed = true;
+    }
 
+    public void setViewParam(ViewParam param)
+    {
+        mViewParam = param;
     }
 
     protected LayoutInflater mInflater;
@@ -64,9 +74,9 @@ public abstract class BaseView extends FrameLayout
      */
     protected void dismissCurrentView()
     {
-        closeInputMethod();
         controller.backView();
 
+        closeInputMethod();
     }
 
     private BaseView parentView;
@@ -101,12 +111,17 @@ public abstract class BaseView extends FrameLayout
     /**
      * @return true:默认执行Back,false:拦截Back事件
      */
-    public boolean OnBack()
+    public boolean onBack()
     {
         return true;
     }
 
     private boolean isShown = false;
+
+    public boolean getShown()
+    {
+        return isShown;
+    }
 
     public void onShow()
     {
@@ -114,6 +129,7 @@ public abstract class BaseView extends FrameLayout
         {
             isShown = true;
             Log.i("BaseView", "onShow:" + this.getClass().getName());
+            DLOG.eventPageStart(this.getTag());
         }
     }
 
@@ -123,7 +139,7 @@ public abstract class BaseView extends FrameLayout
         {
             isShown = false;
             Log.i("BaseView", "onHide:" + this.getClass().getName());
-
+            DLOG.eventPageEnd(getTag());
             hideChildrenView();
         }
     }
@@ -131,11 +147,13 @@ public abstract class BaseView extends FrameLayout
     public void onLoadResource()
     {
         Log.i("BaseView", "onLoadResource:" + this.getClass().getName());
+        // attachChild(this);
     }
 
     public void onReleaseResource()
     {
         Log.i("BaseView", "onReleaseResource:" + this.getClass().getName());
+        // detachChild(this);
     }
 
     public abstract String getTag();
@@ -161,5 +179,12 @@ public abstract class BaseView extends FrameLayout
     public static final int INPUT_TYPE_TOUCH_NOKEY = 2;
     public static final int INPUT_TYPE_NOTOUCH_KEY = 3;
     public static final int INPUT_TYPE_NOTOUCH_NOKEY = 4;
+    /** touch事件可穿透给下层view */
+    public static final int INPUT_TYPE_TOUCH_KEY_THROUGH = 5;
+    public static final int INPUT_TYPE_TOUCH_NOKEY_THROUGH = 6;
 
+    public boolean hasRefresh()
+    {
+        return refreshed;
+    }
 }

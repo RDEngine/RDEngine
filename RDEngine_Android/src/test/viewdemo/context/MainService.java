@@ -42,10 +42,10 @@ public class MainService extends BaseWindowService
                 MainService.this.showView(BubbleView.class, null);
                 break;
             case EventTag.SCAN_ACTIVITY_DESKTOP :
-                // Pause();
+                Pause();
                 break;
             case EventTag.SCAN_ACTIVITY_APP :
-                // Resume();
+                Resume();
                 break;
             }
         }

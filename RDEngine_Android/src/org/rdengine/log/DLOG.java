@@ -208,19 +208,78 @@ public class DLOG
 
         if (RT.DEBUG || forTest)
         {
-            switch (le)
+            if (log == null)
             {
-            case d :
-                android.util.Log.d(tag, log);
-                break;
-            case e :
-                android.util.Log.e(tag, log);
-                break;
-            case i :
-                android.util.Log.i(tag, log);
-                break;
+                toandroidlog(le, tag, "");
+                return;
             }
 
+            boolean isstr = false;// log是否是有效的可见字符串
+            int size = 0;// log的大小
+            try
+            {
+                byte[] logbytes = log.getBytes();
+                size = logbytes.length;
+                if (log.length() > 30)
+                {
+                    isstr = !hasMessyCode(log.substring(20, 30));
+                } else
+                {
+                    isstr = !hasMessyCode(log);
+                }
+            } catch (Exception e1)
+            {
+                e1.printStackTrace();
+            }
+
+            if (isstr)
+            {
+                // 可读的文字log输出 针对logcat折行
+                try
+                {
+                    int start = 0;
+                    while (start < log.length())
+                    {
+                        int end = start + 3000;
+                        if (end >= log.length())
+                            end = log.length();
+                        toandroidlog(le, tag, log.substring(start, end));
+                        start = end;
+                    }
+                } catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
+            } else
+            {
+                toandroidlog(le, tag, "THE LOG NOT STRING ！！ SIZE=" + size);
+            }
+        }
+    }
+
+    private boolean hasMessyCode(String str)
+    {
+        boolean ret = false;
+        if (str == null)
+            return ret;
+        if (str.indexOf("�") > 0)
+            ret = true;
+        return ret;
+    }
+
+    private void toandroidlog(LE le, String tag, String log)
+    {
+        switch (le)
+        {
+        case d :
+            android.util.Log.d(tag, log);
+            break;
+        case e :
+            android.util.Log.e(tag, log);
+            break;
+        case i :
+            android.util.Log.i(tag, log);
+            break;
         }
     }
 
@@ -397,6 +456,24 @@ public class DLOG
     {
         DLOG.d("event", event.name());
         // MobclickAgent.onEvent(RT.application, event.name(), params);
+    }
+
+    public static void eventPageStart(String viewtag)
+    {
+        // if (UMPageFilter.allow(viewtag))
+        // {
+        // DLOG.d("eventPageStart", viewtag);
+        // MobclickAgent.onPageStart(viewtag);
+        // }
+    }
+
+    public static void eventPageEnd(String viewtag)
+    {
+        // if (UMPageFilter.allow(viewtag))
+        // {
+        // DLOG.d("eventPageEnd", viewtag);
+        // MobclickAgent.onPageEnd(viewtag);
+        // }
     }
 
 }

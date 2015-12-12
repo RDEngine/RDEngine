@@ -1,5 +1,6 @@
 package org.rdengine.view.manager;
 
+
 /**
  * View控制器接口
  * 
@@ -42,6 +43,13 @@ public interface ViewController
      * @return
      */
     public BaseView getViewAt(int index);
+
+    /**
+     * 获取最上层View
+     * 
+     * @return
+     */
+    public BaseView getTopView();
 
     /**
      * 干掉之前所有的页
@@ -91,5 +99,11 @@ public interface ViewController
      *            是否放在最高层显示浮窗,会盖在输入法上面,慎用!
      */
     public void updateWindowLayoutParams(int x, int y, int w, int h, int inputType, boolean topOnInput);
+
+    public void swipeviewOnDismiss(BaseView sbv);
+
+    public void moveToTop(BaseView view);
+
+    public void moveToBottom(BaseView view);
 
 }
