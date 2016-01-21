@@ -46,8 +46,11 @@ public class RDHttpConnection
 
     private static RDHttpConnection instance = null;
 
-    private ArrayBlockingQueue<Runnable> httpQueue = new ArrayBlockingQueue<Runnable>(5000);
+    private ArrayBlockingQueue<Runnable> httpQueue = new ArrayBlockingQueue<Runnable>(100);
     private ThreadPoolExecutor threadPool = new ThreadPoolExecutor(4, 5, 10, TimeUnit.SECONDS, httpQueue,
+            new ThreadPoolExecutor.CallerRunsPolicy());
+    private ArrayBlockingQueue<Runnable> imageQueue = new ArrayBlockingQueue<Runnable>(100);
+    private ThreadPoolExecutor imageThreadPool = new ThreadPoolExecutor(2, 20, 10, TimeUnit.SECONDS, httpQueue,
             new ThreadPoolExecutor.CallerRunsPolicy());
 
     private static HttpMessageSet msgSet = new HttpMessageSet();
@@ -64,13 +67,22 @@ public class RDHttpConnection
         public String OK = "OK";
     }
 
-    public static RDHttpConnection ins()
+    public static synchronized RDHttpConnection ins()
     {
-        if (instance == null)
+        if (instance != null)
         {
-            instance = new RDHttpConnection();
+            return instance;
+        } else
+        {
+            synchronized (instance)
+            {
+                if (instance == null)
+                {
+                    instance = new RDHttpConnection();
+                }
+                return instance;
+            }
         }
-        return instance;
     }
 
     private RDHttpConnection()
@@ -109,8 +121,14 @@ public class RDHttpConnection
                 doRequest(_request);
             }
         };
+        if (_request.isIsImage())
+        {
+            imageThreadPool.execute(runable);
+        } else
+        {
 
-        threadPool.execute(runable);
+            threadPool.execute(runable);
+        }
     }
 
     public RDHttpResponse requestSync(RDHttpRequest request)
