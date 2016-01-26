@@ -2,8 +2,6 @@ package org.rdengine.util.bitmap;
 
 import org.rdengine.runtime.RT;
 
-import android.content.Context;
-
 /**
  * BitmapCache请求参数描述
  * 
@@ -17,17 +15,11 @@ public class BitmapParam
     public final static int MODE_CHECK = 1;// 等比缩放
 
     private String Url = null;
-    private int ResId = 0;
     private int DefaultImage = 0;
-    private boolean FromRes = false;
-    private Context Context = null;
     private String ReleaseTag = null;
-    private boolean IsRound = false;
     private int Width = 0;
     private int Height = 0;
     private int mode = 0;// 剪裁模式 0：不等比缩放， 1：等比缩放
-
-    private BitmapCallback callback;
 
     public BitmapParam()
     {}
@@ -35,23 +27,6 @@ public class BitmapParam
     public BitmapParam(String url)
     {
         this.Url = url;
-        FromRes = false;
-    }
-
-    /**
-     * @param resid
-     *            资源id
-     * @param type
-     *            图片类型 在BitmapParam.ImageType里(专辑图,歌单图,Ticker等)
-     * @param size
-     *            S,M,L号
-     */
-    public BitmapParam(int resid, int width, int height)
-    {
-        FromRes = true;
-        this.ResId = resid;
-        Width = width;
-        Height = height;
     }
 
     public void setPXSize(int width, int height)
@@ -66,15 +41,9 @@ public class BitmapParam
         Height = (int) (height / RT.application.getResources().getDisplayMetrics().density + 0.5f);
     }
 
-    public boolean isFromRes()
-    {
-        return FromRes;
-    }
-
     public void setUrl(String url)
     {
         this.Url = url;
-        FromRes = false;
     }
 
     public String getUrl()
@@ -82,21 +51,9 @@ public class BitmapParam
         return Url;
     }
 
-    public void setResId(int resid, Context context)
+    public String getFullUrl()
     {
-        this.ResId = resid;
-        this.Context = context;
-        FromRes = true;
-    }
-
-    public Context getContext()
-    {
-        return this.Context;
-    }
-
-    public int getResId()
-    {
-        return ResId;
+        return productPicUrl(mode, Url, Width, Height);
     }
 
     public void setDefaultImage(int resid)
@@ -134,55 +91,14 @@ public class BitmapParam
         return ReleaseTag;
     }
 
-    public boolean getIsRound()
-    {
-        return IsRound;
-    }
-
-    public void setIsRound(boolean isRound)
-    {
-        IsRound = isRound;
-    }
-
-    public void setBitmapWidth(int width)
-    {
-        Width = width;
-    }
-
-    public int getBitmapWidth()
+    public int getWidth()
     {
         return Width;
     }
 
-    public BitmapCallback getCallback()
-    {
-        return callback;
-    }
-
-    public void setCallback(BitmapCallback callback)
-    {
-        this.callback = callback;
-    }
-
-    public int getBitmapHeight()
+    public int getHeight()
     {
         return Height;
-    }
-
-    public void setBitmapHeight(int height)
-    {
-
-        Height = height;
-    }
-
-    /**
-     * 获取hashkey
-     * 
-     * @return
-     */
-    public int getKey()
-    {
-        return (getUrl() + getBitmapWidth() + getBitmapHeight()).hashCode();
     }
 
     /**

@@ -24,7 +24,6 @@ public class RDHttpRequest
     private File downloadFile = null;
     private boolean Ziped = false;
     private String Key = null;
-    private boolean IsImage = false;
     private boolean ReadCache = true;
 
     public ResponseCallback responseCallBack = null;
@@ -38,16 +37,6 @@ public class RDHttpRequest
     public void setReadCache(boolean readCache)
     {
         ReadCache = readCache;
-    }
-
-    public boolean isIsImage()
-    {
-        return IsImage;
-    }
-
-    public void setIsImage(boolean isImage)
-    {
-        IsImage = isImage;
     }
 
     public void setCacheTime(int cacheTime)
