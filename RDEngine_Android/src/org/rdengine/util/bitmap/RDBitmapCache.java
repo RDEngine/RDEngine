@@ -27,14 +27,14 @@ import android.widget.ImageView;
  * 
  * @author yangyu
  */
-public class BitmapCache
+public class RDBitmapCache
 {
 
     public static String CACHE_PATH = RT.defaultRootPath + "cache/";
 
     public static final int REFERENCE_LIST_MAX_SIZE = 0;
 
-    private static BitmapCache instance = null;//
+    private static RDBitmapCache instance = null;//
 
     private Hashtable<Integer, SoftReference<Bitmap>> Caches = null;// Bitmap缓存池(软引用)
 
@@ -43,7 +43,7 @@ public class BitmapCache
     private ArrayBlockingQueue<Runnable> taskQuene;
     private ThreadPoolExecutor threadPool;
 
-    private BitmapCache()
+    private RDBitmapCache()
     {
         Caches = new Hashtable<Integer, SoftReference<Bitmap>>();
         ReferenceList = new LinkedList<Bitmap>();
@@ -52,7 +52,7 @@ public class BitmapCache
                 new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
-    public static BitmapCache ins()
+    public static RDBitmapCache ins()
     {
         if (instance != null)
         {
@@ -63,7 +63,7 @@ public class BitmapCache
             {
                 if (instance == null)
                 {
-                    instance = new BitmapCache();
+                    instance = new RDBitmapCache();
                 }
                 return instance;
             }
@@ -97,17 +97,17 @@ public class BitmapCache
      * @param width
      * @param height
      */
-    public void preloadBitmap(BitmapParam param)
+    public void preloadBitmap(RDBitmapParam param)
     {
         getBitmap(param, null, null);
     }
 
-    public void getBitmap(final BitmapParam param, BitmapLoadCallback callback)
+    public void getBitmap(final RDBitmapParam param, RDBitmapLoadCallback callback)
     {
         getBitmap(param, null, callback);
     }
 
-    public void getBitmap(final BitmapParam param, ImageView view)
+    public void getBitmap(final RDBitmapParam param, ImageView view)
     {
         getBitmap(param, view, null);
     }
@@ -120,7 +120,7 @@ public class BitmapCache
      * @param view
      *            目标ImageView
      */
-    public void getBitmap(final BitmapParam param, final ImageView view, final BitmapLoadCallback callback)
+    public void getBitmap(final RDBitmapParam param, final ImageView view, final RDBitmapLoadCallback callback)
     {
         Bitmap bitmap = getBitmapFromCache(getCacheKey(param.getUrl(), param.getWidth(), param.getHeight()));
         if (bitmap != null)
@@ -161,7 +161,7 @@ public class BitmapCache
         threadPool.execute(task);
     }
 
-    private Bitmap getLocalCacheBitmap(BitmapParam param)
+    private Bitmap getLocalCacheBitmap(RDBitmapParam param)
     {
         int fileKey = getFileKey(param.getUrl());
         File cacheFile = new File(CACHE_PATH + fileKey);
@@ -204,8 +204,8 @@ public class BitmapCache
         }
     }
 
-    private void setBitmapToImageView(final BitmapParam param, final Bitmap bitmap, final ImageView view,
-            final BitmapLoadCallback callback)
+    private void setBitmapToImageView(final RDBitmapParam param, final Bitmap bitmap, final ImageView view,
+            final RDBitmapLoadCallback callback)
     {
         if (view != null)
         {
@@ -233,7 +233,7 @@ public class BitmapCache
         }
     }
 
-    private Bitmap getNetBitmap(BitmapParam param)
+    private Bitmap getNetBitmap(RDBitmapParam param)
     {
         RDHttpRequest request = new RDHttpRequest(RDHttpRequest.METHOD_GET, param.getFullUrl(), null);
         request.setReadCache(false);
@@ -247,7 +247,7 @@ public class BitmapCache
         return getLocalCacheBitmap(param);
     }
 
-    private void saveBitmapCache(BitmapParam param, byte[] data)
+    private void saveBitmapCache(RDBitmapParam param, byte[] data)
     {
         File cacheFile = new File(CACHE_PATH + getFileKey(param.getUrl()));
         if (cacheFile.exists())

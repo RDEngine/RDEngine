@@ -1,6 +1,6 @@
 package org.rdengine.runtime;
 
-import org.rdengine.util.bitmap.BitmapCache;
+import org.rdengine.util.bitmap.RDBitmapCache;
 
 import android.app.Application;
 import android.os.Environment;
@@ -79,6 +79,6 @@ public class RT
      */
     public void init()
     {
-        BitmapCache.CACHE_PATH = defaultRootPath + "cache/";
+        RDBitmapCache.CACHE_PATH = defaultRootPath + "cache/";
     }
 }

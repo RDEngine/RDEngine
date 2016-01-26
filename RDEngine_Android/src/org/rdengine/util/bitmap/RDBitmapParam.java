@@ -7,7 +7,7 @@ import org.rdengine.runtime.RT;
  * 
  * @author yangyu
  */
-public class BitmapParam
+public class RDBitmapParam
 {
     public final static String LOCAL_PREFIX = "localfile:";
 
@@ -21,10 +21,10 @@ public class BitmapParam
     private int Height = 0;
     private int mode = 0;// 剪裁模式 0：不等比缩放， 1：等比缩放
 
-    public BitmapParam()
+    public RDBitmapParam()
     {}
 
-    public BitmapParam(String url)
+    public RDBitmapParam(String url)
     {
         this.Url = url;
     }
