@@ -29,7 +29,7 @@ public class RDHttpConnection
 {
 
     private static final String LOG_TAG = "http";
-    private static boolean LOGED = true;
+    public static boolean LOGED = true;
     private static final int GET_BLOCK = 10 * 2014;
     private static final int POST_BLOCK = 10 * 2014;
     private static final int CONN_TIMEOUT = 30 * 1000;
@@ -47,7 +47,7 @@ public class RDHttpConnection
     private static RDHttpConnection instance = null;
 
     private ArrayBlockingQueue<Runnable> httpQueue = new ArrayBlockingQueue<Runnable>(100);
-    private ThreadPoolExecutor threadPool = new ThreadPoolExecutor(4, 5, 10, TimeUnit.SECONDS, httpQueue,
+    private ThreadPoolExecutor threadPool = new ThreadPoolExecutor(1, 5, 10, TimeUnit.SECONDS, httpQueue,
             new ThreadPoolExecutor.CallerRunsPolicy());
 
     private static HttpMessageSet msgSet = new HttpMessageSet();
@@ -71,7 +71,7 @@ public class RDHttpConnection
             return instance;
         } else
         {
-            synchronized (instance)
+            synchronized (RDHttpConnection.class)
             {
                 if (instance == null)
                 {
@@ -136,20 +136,22 @@ public class RDHttpConnection
 
         if (LOGED)
         {
-            DLOG.d("http", "url:" + request.getUrl());
+            DLOG.d("HTTP", "url:" + request.getUrl());
         }
 
-        byte[] cache = RDHttpCache.ins().readCache(request.getKey());
-        if (cache != null && cache.length > 0)
+        if (request.isReadCache() && request.getMethod() == RDHttpRequest.METHOD_GET)
         {
-            response.setErrcode(ERR_OK);
-            response.setErrMsg(msgSet.OK);
-            response.setResponseData(cache);
-            response.setFromCache(true);
-            request.doResponseCallback(response);
-            return response;
+            byte[] cache = RDHttpCache.ins().readCache(request.getKey());
+            if (cache != null && cache.length > 0)
+            {
+                response.setErrcode(ERR_OK);
+                response.setErrMsg(msgSet.OK);
+                response.setResponseData(cache);
+                response.setFromCache(true);
+                request.doResponseCallback(response);
+                return response;
+            }
         }
-
         // 取消请求
         if (response.getRequest().isCanceled())
         {
@@ -179,15 +181,17 @@ public class RDHttpConnection
             case RDHttpRequest.METHOD_GET :
             case RDHttpRequest.METHOD_GET_DOWNLOAD :
                 conn.setRequestMethod("GET");
+                conn.setDoOutput(false);
                 break;
             case RDHttpRequest.METHOD_POST :
             case RDHttpRequest.METHOD_POST_FILE_MULTIPART :
                 conn.setRequestMethod("POST");
+                conn.setDoOutput(true);
                 break;
             }
 
             conn.setDoInput(true);
-            conn.setDoOutput(true);
+
             conn.setUseCaches(false);
             conn.setConnectTimeout(CONN_TIMEOUT);
             conn.setReadTimeout(CONN_TIMEOUT);
@@ -249,10 +253,6 @@ public class RDHttpConnection
                         if (request.getMethod() == RDHttpRequest.METHOD_POST_FILE_MULTIPART
                                 && !StringUtil.isEmpty(request.MultiPart_Start))
                         {
-                            if (LOGED)
-                            {
-                                DLOG.d(LOG_TAG, request.MultiPart_Start);
-                            }
                             os.write(request.MultiPart_Start.getBytes());
                         }
                         byte[] buff = new byte[POST_BLOCK];
@@ -280,10 +280,6 @@ public class RDHttpConnection
                         if (request.getMethod() == RDHttpRequest.METHOD_POST_FILE_MULTIPART
                                 && !StringUtil.isEmpty(request.MultiPart_End))
                         {
-                            if (LOGED)
-                            {
-                                DLOG.d(LOG_TAG, request.MultiPart_End);
-                            }
                             os.write(request.MultiPart_End.getBytes());
                         }
                     }
@@ -319,11 +315,12 @@ public class RDHttpConnection
 
             if (code / 100 != 2)
             {
+                DLOG.d("HTTP", "errCode:" + code);
                 response.setErrcode(code);
                 response.setErrMsg(conn.getResponseMessage());
                 response.setResponseData(null);
                 response.setFromCache(false);
-                request.responseCallBack.onResponse(response);
+                request.doResponseCallback(response);
                 conn.disconnect();
 
                 return response;
@@ -351,6 +348,8 @@ public class RDHttpConnection
             switch (request.getMethod())
             {
             case RDHttpRequest.METHOD_GET :
+            case RDHttpRequest.METHOD_POST :
+            case RDHttpRequest.METHOD_POST_FILE_MULTIPART :
                 os = new ByteArrayOutputStream();
                 break;
             case RDHttpRequest.METHOD_GET_DOWNLOAD :
@@ -359,7 +358,7 @@ public class RDHttpConnection
                     response.setErrcode(ERR_NO_DOWNLOAD_FILE);
                     response.setErrMsg(msgSet.noDownloadFile);
                     response.setResponseData(null);
-                    request.responseCallBack.onResponse(response);
+                    request.doResponseCallback(response);
                     input.close();
                     input = null;
                     conn.disconnect();
@@ -401,14 +400,11 @@ public class RDHttpConnection
             switch (request.getMethod())
             {
             case RDHttpRequest.METHOD_GET :
+            case RDHttpRequest.METHOD_POST :
+            case RDHttpRequest.METHOD_POST_FILE_MULTIPART :
                 byte[] data = ((ByteArrayOutputStream) os).toByteArray();
                 if (data != null)
                 {
-
-                    if (LOGED)
-                    {
-                        DLOG.d(LOG_TAG, "errcode:" + 0 + ";errmsg:" + "" + ";DATA:" + new String(data));
-                    }
                     if (!StringUtil.isEmpty(request.getKey()) && request.getCacheTime() > 0)
                     {
                         RDHttpCache.ins().addCache(request.getKey(), data, request.getCacheTime());
@@ -421,10 +417,6 @@ public class RDHttpConnection
                 request.doResponseCallback(response);
                 break;
             case RDHttpRequest.METHOD_GET_DOWNLOAD :
-                if (LOGED)
-                {
-                    DLOG.d(LOG_TAG, "errcode:" + 0 + ";errmsg:" + "" + ";DATA:" + request.getDownloadFile().getName());
-                }
                 response.setErrcode(ERR_OK);
                 response.setErrMsg(msgSet.OK);
                 response.setResponseData(null);

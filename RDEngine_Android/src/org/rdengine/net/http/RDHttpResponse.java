@@ -8,8 +8,8 @@ import org.json.JSONObject;
 public class RDHttpResponse
 {
 
-    public static final String JSON_ERR_CODE = "errcode";
-    public static final String JSON_ERR_MSG = "errmsg";
+    public static final String JSON_ERR_CODE = "status";
+    public static final String JSON_ERR_MSG = "msg";
 
     private RDHttpRequest request = null;
 
@@ -45,9 +45,14 @@ public class RDHttpResponse
 
     public int getErrcode()
     {
-        parseJson();
         return errcode;
 
+    }
+
+    public int getJsonErrCode()
+    {
+        parseJson();
+        return errcode;
     }
 
     public void setErrcode(int errcode)

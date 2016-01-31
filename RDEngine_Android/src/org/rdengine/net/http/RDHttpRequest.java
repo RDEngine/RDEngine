@@ -2,11 +2,15 @@ package org.rdengine.net.http;
 
 import java.io.File;
 
+import org.rdengine.log.DLOG;
+
 import android.os.Handler;
 import android.os.Looper;
 
 public class RDHttpRequest
 {
+
+    private static final boolean LOGED = true;
 
     public static final int METHOD_GET = 1;
     public static final int METHOD_POST = 2;
@@ -24,10 +28,10 @@ public class RDHttpRequest
     private File downloadFile = null;
     private boolean Ziped = false;
     private String Key = null;
-    private boolean ReadCache = true;
+    private boolean ReadCache = false;
 
-    public ResponseCallback responseCallBack = null;
-    public ProcessCallback processCallback = null;
+    public RDResponseCallback responseCallBack = null;
+    public RDProcessCallback processCallback = null;
 
     public boolean isReadCache()
     {
@@ -127,18 +131,24 @@ public class RDHttpRequest
         Ziped = ziped;
     }
 
-    public void setResponseCallBack(ResponseCallback callBack)
+    public void setResponseCallBack(RDResponseCallback callBack)
     {
         responseCallBack = callBack;
     }
 
-    public void setProcessCallback(ProcessCallback callBack)
+    public void setProcessCallback(RDProcessCallback callBack)
     {
         processCallback = callBack;
     }
 
     public void doResponseCallback(RDHttpResponse response)
     {
+        if (LOGED)
+        {
+            if (response.getResponseData() != null && response.getResponseData().length < 4096)
+                DLOG.d("HTTP", "err:" + response.getErrcode() + ",msg:" + response.getErrMsg() + ","
+                        + new String(response.getResponseData()));
+        }
         if (responseCallBack != null)
         {
             if (isMainLooper())
@@ -218,7 +228,7 @@ public class RDHttpRequest
         this(method, url, urlParams, null, null, null);
     }
 
-    public RDHttpRequest(int method, String url, RDHttpParams urlParams, ResponseCallback callback)
+    public RDHttpRequest(int method, String url, RDHttpParams urlParams, RDResponseCallback callback)
     {
         this(method, url, urlParams, null, null, callback);
     }
@@ -228,7 +238,7 @@ public class RDHttpRequest
         this(method, url, urlParams, post, null, null);
     }
 
-    public RDHttpRequest(int method, String url, RDHttpParams urlParams, byte[] post, ResponseCallback callback)
+    public RDHttpRequest(int method, String url, RDHttpParams urlParams, byte[] post, RDResponseCallback callback)
     {
         this(method, url, urlParams, post, null, callback);
     }
@@ -238,13 +248,13 @@ public class RDHttpRequest
         this(method, url, urlParams, null, post, null);
     }
 
-    public RDHttpRequest(int method, String url, RDHttpParams urlParams, File post, ResponseCallback callback)
+    public RDHttpRequest(int method, String url, RDHttpParams urlParams, File post, RDResponseCallback callback)
     {
         this(method, url, urlParams, null, post, callback);
     }
 
     public RDHttpRequest(int method, String url, RDHttpParams urlParams, byte[] postdata, File post,
-            ResponseCallback callback)
+            RDResponseCallback callback)
     {
         setMethod(method);
         setUrl(url, urlParams);

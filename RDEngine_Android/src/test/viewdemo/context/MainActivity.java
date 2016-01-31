@@ -11,7 +11,7 @@ import org.rdengine.net.http.RDHttpConnection;
 import org.rdengine.net.http.RDHttpParams;
 import org.rdengine.net.http.RDHttpRequest;
 import org.rdengine.net.http.RDHttpResponse;
-import org.rdengine.net.http.ResponseCallback;
+import org.rdengine.net.http.RDResponseCallback;
 import org.rdengine.view.manager.BaseActivity;
 
 import android.os.Bundle;
@@ -99,7 +99,7 @@ public class MainActivity extends BaseActivity implements View.OnClickListener
 
         // callback.onResponse(getJson("channelData"), 0, "ok", 0, false);
         RDHttpRequest request = new RDHttpRequest(RDHttpRequest.METHOD_GET, SERVER_URL + "drios/channelData", params);
-        ResponseCallback callback = new ResponseCallback()
+        RDResponseCallback callback = new RDResponseCallback()
         {
 
             @Override

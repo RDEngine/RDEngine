@@ -111,6 +111,18 @@ public class RDBitmapParam
      */
     public static String productPicUrl(int mode, String url, int width, int height)
     {
+        String fullurl = "";
+        if (url.trim().toLowerCase().startsWith("http://"))
+        {
+            fullurl = url;
+        } else
+        {
+            fullurl = "http://imgcdn.besttoptoday.com/" + url;
+        }
+        if (width > 0 && width < 500 && height > 0 && height < 500)
+        {
+            fullurl = fullurl + "!192x128";
+        }
         // if (width <= 0 || height <= 0)
         // {
         // return url;
@@ -125,6 +137,6 @@ public class RDBitmapParam
         // }
         // DLOG.d("image", "url:" + c.toString());
         // return c.toString();
-        return url;
+        return fullurl;
     }
 }

@@ -1,6 +1,6 @@
 package org.rdengine.net.http;
 
-public interface ProcessCallback
+public interface RDProcessCallback
 {
     public boolean onPreRequest(RDHttpResponse response);
 

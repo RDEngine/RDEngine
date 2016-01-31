@@ -10,10 +10,12 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.rdengine.log.DLOG;
 import org.rdengine.net.http.RDHttpConnection;
 import org.rdengine.net.http.RDHttpRequest;
 import org.rdengine.net.http.RDHttpResponse;
-import org.rdengine.runtime.RT;
+import org.rdengine.util.MD5Util;
+import org.rdengine.util.StringUtil;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -30,13 +32,16 @@ import android.widget.ImageView;
 public class RDBitmapCache
 {
 
-    public static String CACHE_PATH = RT.defaultRootPath + "cache/";
+    private static final boolean LOGED = true;
+
+    public static String CACHE_PATH = "";
 
     public static final int REFERENCE_LIST_MAX_SIZE = 0;
 
     private static RDBitmapCache instance = null;//
 
     private Hashtable<Integer, SoftReference<Bitmap>> Caches = null;// Bitmap缓存池(软引用)
+    private Hashtable<ImageView, RDBitmapParam> Binds = null;
 
     private LinkedList<Bitmap> ReferenceList = null;
 
@@ -46,9 +51,10 @@ public class RDBitmapCache
     private RDBitmapCache()
     {
         Caches = new Hashtable<Integer, SoftReference<Bitmap>>();
+        Binds = new Hashtable<ImageView, RDBitmapParam>();
         ReferenceList = new LinkedList<Bitmap>();
         taskQuene = new ArrayBlockingQueue<Runnable>(100);
-        threadPool = new ThreadPoolExecutor(1, 10, 5, TimeUnit.SECONDS, taskQuene,
+        threadPool = new ThreadPoolExecutor(1, 5, 30, TimeUnit.SECONDS, taskQuene,
                 new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
@@ -59,7 +65,7 @@ public class RDBitmapCache
             return instance;
         } else
         {
-            synchronized (instance)
+            synchronized (RDBitmapCache.class)
             {
                 if (instance == null)
                 {
@@ -102,12 +108,17 @@ public class RDBitmapCache
         getBitmap(param, null, null);
     }
 
-    public void getBitmap(final RDBitmapParam param, RDBitmapLoadCallback callback)
+    public void getBitmap(RDBitmapParam param)
+    {
+        getBitmap(param, null, null);
+    }
+
+    public void getBitmap(RDBitmapParam param, RDBitmapLoadCallback callback)
     {
         getBitmap(param, null, callback);
     }
 
-    public void getBitmap(final RDBitmapParam param, ImageView view)
+    public void getBitmap(RDBitmapParam param, ImageView view)
     {
         getBitmap(param, view, null);
     }
@@ -122,10 +133,26 @@ public class RDBitmapCache
      */
     public void getBitmap(final RDBitmapParam param, final ImageView view, final RDBitmapLoadCallback callback)
     {
-        Bitmap bitmap = getBitmapFromCache(getCacheKey(param.getUrl(), param.getWidth(), param.getHeight()));
+        if (LOGED)
+            DLOG.d("BitmapCache", "" + Thread.currentThread().getId() + "getBitmap:" + param.getFullUrl());
+
+        if (StringUtil.isEmpty(param.getUrl()) || (!param.getFullUrl().trim().toLowerCase().startsWith("http://")
+                && !param.getFullUrl().trim().toLowerCase().startsWith("ftp://")))
+        {
+            if (view != null)
+            {
+                view.setImageResource(param.getDefaultImage());
+            }
+            return;
+        }
+        if (view != null)
+        {
+            Binds.put(view, param);
+        }
+        Bitmap bitmap = getBitmapFromCache(getCacheKey(param.getFullUrl(), param.getWidth(), param.getHeight()));
         if (bitmap != null)
         {
-            setBitmapToImageView(param, bitmap, view, callback);
+            bindViewAndCallback(param, bitmap, view, callback);
             return;
         }
         if (param.getDefaultImage() > 0)
@@ -138,21 +165,15 @@ public class RDBitmapCache
             @Override
             public void run()
             {
-
                 Bitmap bitmap = getLocalCacheBitmap(param);
                 if (bitmap == null)
                 {
                     bitmap = getNetBitmap(param);
                 }
-
+                bindViewAndCallback(param, bitmap, view, callback);
                 if (bitmap != null)
                 {
-                    if (view != null)
-                    {
-                        setBitmapToImageView(param, bitmap, view, callback);
-
-                    }
-                    Caches.put(getCacheKey(param.getUrl(), param.getWidth(), param.getHeight()),
+                    Caches.put(getCacheKey(param.getFullUrl(), param.getWidth(), param.getHeight()),
                             new SoftReference<Bitmap>(bitmap));
                     putBitmapToReferenceList(bitmap);
                 }
@@ -161,21 +182,21 @@ public class RDBitmapCache
         threadPool.execute(task);
     }
 
-    private Bitmap getLocalCacheBitmap(RDBitmapParam param)
+    public Bitmap getLocalCacheBitmap(RDBitmapParam param)
     {
-        int fileKey = getFileKey(param.getUrl());
-        File cacheFile = new File(CACHE_PATH + fileKey);
+
+        File cacheFile = new File(getBitmapCachePath(param));
         if (cacheFile.exists())
         {
 
             BitmapRegionDecoder decoder;
-            int sample = 1;
+            float sample = 1;
             try
             {
                 decoder = BitmapRegionDecoder.newInstance(cacheFile.getAbsolutePath(), true);
-                int srcWidth = decoder.getWidth();
-                int srcHeight = decoder.getHeight();
-                int sampleWidth = 1, sampleHeight = 1;
+                float srcWidth = decoder.getWidth();
+                float srcHeight = decoder.getHeight();
+                float sampleWidth = 1, sampleHeight = 1;
                 if (param.getWidth() > 0)
                 {
                     sampleWidth = srcWidth / param.getWidth();
@@ -184,6 +205,7 @@ public class RDBitmapCache
                 {
                     sampleHeight = srcHeight / param.getHeight();
                 }
+                decoder.recycle();
                 sample = sampleWidth > sampleHeight ? sampleWidth : sampleHeight;
             } catch (IOException e)
             {
@@ -191,7 +213,10 @@ public class RDBitmapCache
             }
 
             BitmapFactory.Options op = new BitmapFactory.Options();
-            op.inSampleSize = sample;
+            op.inSampleSize = (int) sample;
+            if (LOGED)
+                DLOG.d("BitmapCache", "" + Thread.currentThread().getId() + "getLocalCacheBitmap:" + sample + ":"
+                        + getBitmapCachePath(param));
             Bitmap bitmap = BitmapFactory.decodeFile(cacheFile.getAbsolutePath(), op);
             if (bitmap == null)
             {
@@ -204,18 +229,40 @@ public class RDBitmapCache
         }
     }
 
-    private void setBitmapToImageView(final RDBitmapParam param, final Bitmap bitmap, final ImageView view,
+    private void bindViewAndCallback(final RDBitmapParam param, final Bitmap bitmap, final ImageView view,
             final RDBitmapLoadCallback callback)
     {
+        if (LOGED)
+            DLOG.d("BitmapCache", "" + Thread.currentThread().getId() + "setImageBitmap:" + bitmap);
         if (view != null)
         {
             new Handler(Looper.getMainLooper()).post(new Runnable()
             {
-
                 @Override
                 public void run()
                 {
-                    view.setImageBitmap(bitmap);
+                    if (Binds.get(view) == param)
+                    {
+                        Binds.remove(view);
+                        if (bitmap != null)
+                        {
+                            view.setImageBitmap(bitmap);
+                        }
+                    }
+                }
+            });
+        }
+        if (callback != null)
+        {
+            new Handler(Looper.getMainLooper()).post(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    if (callback != null)
+                    {
+                        callback.onBitmapCallback(bitmap, param);
+                    }
                 }
             });
         }
@@ -235,6 +282,8 @@ public class RDBitmapCache
 
     private Bitmap getNetBitmap(RDBitmapParam param)
     {
+        if (LOGED)
+            DLOG.d("BitmapCache", "" + Thread.currentThread().getId() + "getNetBitmap:" + param.getFullUrl());
         RDHttpRequest request = new RDHttpRequest(RDHttpRequest.METHOD_GET, param.getFullUrl(), null);
         request.setReadCache(false);
         request.setCacheTime(0);
@@ -249,7 +298,9 @@ public class RDBitmapCache
 
     private void saveBitmapCache(RDBitmapParam param, byte[] data)
     {
-        File cacheFile = new File(CACHE_PATH + getFileKey(param.getUrl()));
+        if (LOGED)
+            DLOG.d("BitmapCache", "" + Thread.currentThread().getId() + "saveBitmapCache:" + getBitmapCachePath(param));
+        File cacheFile = new File(getBitmapCachePath(param));
         if (cacheFile.exists())
         {
             cacheFile.delete();
@@ -265,6 +316,11 @@ public class RDBitmapCache
         {
             e.printStackTrace();
         }
+    }
+
+    public String getBitmapCachePath(RDBitmapParam param)
+    {
+        return CACHE_PATH + getFileKey(param.getFullUrl());
     }
 
     private void putBitmapToReferenceList(Bitmap bitmap)
@@ -292,9 +348,9 @@ public class RDBitmapCache
         return hash;
     }
 
-    public int getFileKey(String url)
+    public String getFileKey(String url)
     {
-        return url.hashCode();
+        return MD5Util.getMd5(url.getBytes());
     }
 
     public void cancelRequest(RDHttpRequest request)
